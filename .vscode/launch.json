@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-p", "~/repos/TachiyomiCBZ/Tachiyomi/", "-t"]
+            "args": ["-p", "~/repos/TachiyomiCBZ/Tachiyomi/", "-t", "-c", "-d", "-v", "2"]
         }
     ]
 }
