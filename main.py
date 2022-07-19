@@ -15,58 +15,49 @@ tachiyomi_path = args.tachiyomi_path
 isDelete = args.delete
 isTest = args.test
 
-
-
-
-
-
-
-
-
-
-
-
-
 def zipfiles_source(current_path:str):
     # for each `comic`
     for comic_name in os.listdir(os.getcwd()): # enter each comic in each source
-        os.chdir(comic_name)
-        print("Entering", os.getcwd())
+        if(os.path.isdir(comic_name)):
+            os.chdir(comic_name)
+            print("Entering", os.getcwd())
 
-        # for each `chapter` in `comic`
-        for chapter_name in os.listdir(os.getcwd()):
-            if(os.path.isdir(chapter_name)):
-                # create cbz of format "chapter_name.cbz" and contents of `chapter`
-                # -t means no cbz is created
-                if(not isTest):
-                    zip_name = shutil.make_archive(chapter_name, 'zip', os.path.join(os.getcwd(), chapter_name))
-                    p = Path(zip_name)
-                    p.rename(p.with_suffix(".cbz"))
+            # for each `chapter` in `comic`
+            for chapter_name in os.listdir(os.getcwd()):
+                if(os.path.isdir(chapter_name)):
+                    # create cbz of format "chapter_name.cbz" and contents of `chapter`
+                    # -t means no cbz is created
+                    if(not isTest):
+                        zip_name = shutil.make_archive(chapter_name, 'zip', os.path.join(os.getcwd(), chapter_name))
+                        p = Path(zip_name)
+                        p.rename(p.with_suffix(".cbz"))
 
-                print(os.path.join(os.getcwd(), f"{chapter_name}.cbz"))
+                    print(os.path.join(os.getcwd(), f"{chapter_name}.cbz"))
 
-                # clean up image folders
-                if(isDelete):
-                    shutil.rmtree(os.path.join(current_path, comic_name, chapter_name))
+                    # clean up image folders
+                    if(isDelete):
+                        shutil.rmtree(os.path.join(current_path, comic_name, chapter_name))
 
-        print("Exiting", os.getcwd())
-        os.chdir(os.path.dirname(os.getcwd())) # leave this comic
+            print("Exiting", os.getcwd())
+            os.chdir(os.path.dirname(os.getcwd())) # leave this comic
 
 def zipfiles_downloads(current_path:str):
-    os.chdir(current_path)
-    print("Entering", os.getcwd())
-
-    for source_name in os.listdir(os.getcwd()):
-        os.chdir(source_name)
+    if(os.path.isdir(current_path)):
+        os.chdir(current_path)
         print("Entering", os.getcwd())
 
-        zipfiles_source(os.getcwd())
+        for source_name in os.listdir(os.getcwd()):
+            if(os.path.isdir(source_name)):
+                os.chdir(source_name)
+                print("Entering", os.getcwd())
 
-        os.chdir(os.path.dirname(os.getcwd())) # leave this source
+                zipfiles_source(os.getcwd())
+
+                os.chdir(os.path.dirname(os.getcwd())) # leave this source
+                print("Exiting", os.getcwd())
+
+        os.chdir(os.path.dirname(os.getcwd())) # leave downloads
         print("Exiting", os.getcwd())
-
-    os.chdir(os.path.dirname(os.getcwd())) # leave downloads
-    print("Exiting", os.getcwd())
 
 if __name__ == "__main__":
     # Start in tachiyomi
