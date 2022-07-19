@@ -16,15 +16,22 @@ isDelete = bool(args.delete)
 isTest = bool(args.test)
 isCleanup = bool(args.clean)
 curr_verbosity = int(args.verbosity)
+NUMBER_ZIPPED = 0
+NUMBER_SKIPPED = 0
+NUMBER_FILES_DELETED = 0
+
 
 def VERBOSITY_PRINT(str_verbosity:int, str:str):
     if(str_verbosity <= curr_verbosity):
         print(str)
 
 def cbz_folder(folder_name:str):
+    global NUMBER_ZIPPED
+    global NUMBER_FILES_DELETED
     nomedia_path = os.path.join(os.getcwd(), folder_name, ".nomedia")
     if(isCleanup and os.path.exists(nomedia_path)):
-        VERBOSITY_PRINT(1, f"Deleting {str(nomedia_path)}")
+        VERBOSITY_PRINT(2, f"Deleting {str(nomedia_path)}")
+        NUMBER_FILES_DELETED += 1
         if(not isTest): # message without deleting if this is a test run
             os.remove(nomedia_path)
 
@@ -37,6 +44,7 @@ def cbz_folder(folder_name:str):
 
     created_cbz_name = str(os.path.join(os.getcwd(), f"{folder_name}.cbz"))
     VERBOSITY_PRINT(1, f"Creating {created_cbz_name}")
+    NUMBER_ZIPPED += 1
 
     # clean up image folders if -d
     if(isDelete):
@@ -44,19 +52,37 @@ def cbz_folder(folder_name:str):
         VERBOSITY_PRINT(2, f"Deleting {current_chapter_full_path}")
         if(not isTest):
             shutil.rmtree(current_chapter_full_path)
+            # NUMBER_FILES_DELETED += N  ##TODO: when you can find out how many files were just deleted in the folder
 
 def cbz_search(curr_dirr_name, folder_list):
+    global NUMBER_SKIPPED
     VERBOSITY_PRINT(1, f"Entering {curr_dirr_name}")
     os.chdir(curr_dirr_name)
 
     for folder_name in folder_list:
+        can_cbz_folder = True
         directory_list = os.listdir(os.path.join(os.getcwd(), folder_name))
-        directory_list = [directory for directory in directory_list if os.path.isdir(os.path.join(folder_name, directory))]
+        directory_only_list = []
 
-        if directory_list: # the folder being examined has directories in it - it is not a chapter so explore the directories
-            cbz_search(folder_name, directory_list)
+        for directory in directory_list:
+            if os.path.isdir(os.path.join(folder_name, directory)): # it's a directory
+                directory_only_list.append(directory)
+            else: # it's a file
+                exclude_dict = set([".cbz", ".cbr", ".epub", ".rar", ".zip"])
+                file_ext = os.path.splitext(directory)[1]
+
+                if file_ext in exclude_dict:
+                    can_cbz_folder = False
+
+        if directory_only_list: # the folder being examined has directories in it - it is not a chapter so explore the directories
+            cbz_search(folder_name, directory_only_list)
         else: # the folder_name is a chapter that can be CBZd
-            cbz_folder(folder_name)
+            # only CBZ the folder if there are no cbz, cbr, epubc, rar, or zip files in there
+            if(can_cbz_folder):
+                cbz_folder(folder_name)
+            else:
+                VERBOSITY_PRINT(3, f"Skipping {os.path.join(os.getcwd(), folder_name)} - archive files are already present in this folder")
+                NUMBER_SKIPPED += 1
 
     VERBOSITY_PRINT(1, f"Exiting {os.getcwd()}")
     os.chdir(os.path.dirname(os.getcwd())) # done here leave this folder (could be the comic, could be the source)
@@ -69,3 +95,23 @@ if __name__ == "__main__":
     directory_list = [directory for directory in directory_list if os.path.isdir(os.path.join(tachiyomi_path, directory))]
     if directory_list:
         cbz_search(tachiyomi_path, directory_list)
+
+    print()
+    print()
+    print()
+    VERBOSITY_PRINT(0, "RESULT SUMMARY:")
+    VERBOSITY_PRINT(0, f"   Number of .cbz files created:                          {NUMBER_ZIPPED}")
+    VERBOSITY_PRINT(0, f"   Number of folders skipped (archive already exists):    {NUMBER_SKIPPED}")
+    VERBOSITY_PRINT(0, f"   Number of files deleted (not counting page pictures):  {NUMBER_FILES_DELETED}")
+    print()
+    VERBOSITY_PRINT(0, "PARAMETER INFORMATION:")
+    if(isTest):
+        VERBOSITY_PRINT(0, "    TEST RUN ONLY - no files were modifed")
+    if(isCleanup):
+        VERBOSITY_PRINT(0, "    .nomedia files WERE deleted in chapter folders before creating .cbz file")
+    else:
+        VERBOSITY_PRINT(0, "    .nomedia files WERE NOT deleted in chapter folders before creating .cbz file")
+    if(isDelete):
+        VERBOSITY_PRINT(0, "    Folders containing the chapter pictures WERE deleted.")
+    else:
+        VERBOSITY_PRINT(0, "    Folders containing the chapter pictures WERE NOT deleted.")
