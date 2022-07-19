@@ -26,8 +26,15 @@ def VERBOSITY_PRINT(str_verbosity:int, str:str):
         print(str)
 
 def cbz_folder(folder_name:str):
+    """Function to archive the given folder and delete files as specified by input flags.
+
+    Args:
+        folder_name (str): The folder to be archived. It has already been checked for already existing archive files.
+    """
     global NUMBER_ZIPPED
     global NUMBER_FILES_DELETED
+
+    # Deal with the .nomedia file (-c)
     nomedia_path = os.path.join(os.getcwd(), folder_name, ".nomedia")
     if(isCleanup and os.path.exists(nomedia_path)):
         VERBOSITY_PRINT(2, f"Deleting {str(nomedia_path)}")
@@ -37,13 +44,13 @@ def cbz_folder(folder_name:str):
 
     # create cbz of format "folder_name.cbz" and contents of `folder`
     # -t means no cbz is created
+    created_cbz_name = str(os.path.join(os.getcwd(), f"{folder_name}.cbz"))
+    VERBOSITY_PRINT(1, f"Creating {created_cbz_name}")
     if(not isTest):
         zip_name = shutil.make_archive(folder_name, 'zip', os.path.join(os.getcwd(), folder_name))
         p = Path(zip_name)
         p.rename(p.with_suffix(".cbz"))
 
-    created_cbz_name = str(os.path.join(os.getcwd(), f"{folder_name}.cbz"))
-    VERBOSITY_PRINT(1, f"Creating {created_cbz_name}")
     NUMBER_ZIPPED += 1
 
     # clean up image folders if -d
@@ -55,6 +62,13 @@ def cbz_folder(folder_name:str):
             # NUMBER_FILES_DELETED += N  ##TODO: when you can find out how many files were just deleted in the folder
 
 def cbz_search(curr_dirr_name, folder_list):
+    """Recursively searches through the tree starting at
+    `curr_dirr_name` for chapter folders (leaves) that can be archived.
+
+    Args:
+        curr_dirr_name (str): The current directory that is being searched
+        folder_list (list[str|BytesPath]): A list of directories in the current directory (assumes there are no file names in this list)
+    """
     global NUMBER_SKIPPED
     VERBOSITY_PRINT(1, f"Entering {curr_dirr_name}")
     os.chdir(curr_dirr_name)
