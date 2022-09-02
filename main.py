@@ -8,6 +8,7 @@ parser.add_argument("-p", "--tachiyomi-path", help="file path to the Tachiyomi f
 parser.add_argument("-d", "--delete", help="flag to delete the original chapter folder + images once the .cbz file has been created. Default = no deletions", action="store_true")
 parser.add_argument("-t", "--test", help="flag to only print the paths of all the .cbz files to be created but do not create them. Default = create the CBZ", action="store_true")
 parser.add_argument("-c", "--clean", help="flag to clean up by deleting any .nomedia files in chapter folders that it comes across. Default = no cleanup", action="store_true")
+parser.add_argument("-m", "--merge", help="flag to merge all chapters into a single .cbz file. Default = no merge", action="store_true")
 parser.add_argument("-v", "--verbosity", help="level of verbosity [0|1|2|3]. Default = 0 (silent)", default=0)
 
 args = parser.parse_args()
@@ -15,10 +16,12 @@ tachiyomi_path = str(args.tachiyomi_path)
 isDelete = bool(args.delete)
 isTest = bool(args.test)
 isCleanup = bool(args.clean)
+isMerge = bool(args.merge)
 curr_verbosity = int(args.verbosity)
 NUMBER_ZIPPED = 0
 NUMBER_SKIPPED = 0
 NUMBER_FILES_DELETED = 0
+NUMBER_FILES_MERGED = 0 #to avoid filename conflicts, the number of files to merge must be kept track of
 
 
 def VERBOSITY_PRINT(str_verbosity:int, str:str):
@@ -33,6 +36,7 @@ def cbz_folder(folder_name:str):
     """
     global NUMBER_ZIPPED
     global NUMBER_FILES_DELETED
+    global NUMBER_FILES_MERGED
 
     # Deal with the .nomedia file (-c)
     nomedia_path = os.path.join(os.getcwd(), folder_name, ".nomedia")
@@ -44,14 +48,25 @@ def cbz_folder(folder_name:str):
 
     # create cbz of format "folder_name.cbz" and contents of `folder`
     # -t means no cbz is created
-    created_cbz_name = str(os.path.join(os.getcwd(), f"{folder_name}.cbz"))
-    VERBOSITY_PRINT(1, f"Creating {created_cbz_name}")
-    if(not isTest):
-        zip_name = shutil.make_archive(folder_name, 'zip', os.path.join(os.getcwd(), folder_name))
-        p = Path(zip_name)
-        p.rename(p.with_suffix(".cbz"))
+    if(not isMerge):
+        created_cbz_name = str(os.path.join(os.getcwd(), f"{folder_name}.cbz"))
+        VERBOSITY_PRINT(1, f"Creating {created_cbz_name}")
+        if(not isTest):
+           zip_name = shutil.make_archive(folder_name, 'zip', os.path.join(os.getcwd(), folder_name))
+           p = Path(zip_name)
+           p.rename(p.with_suffix(".cbz"))
+           NUMBER_ZIPPED += 1
+    else: # executed when chapters are to be merged, instead of zipping one directory at a time, the directory contents are copied to a working directory to be zipped at the end
+        if(not isTest):
+            # because filenames will likely collide if we copy the names as they exist in the source dir, the files are named sequentially starting from 0
+           files=os.listdir(os.path.join(os.getcwd(),folder_name))
+           for fname in files:
+            file_extension = Path(os.path.join(os.getcwd(),folder_name,fname)).suffix
+            shutil.copy(os.path.join(os.path.join(os.getcwd(),folder_name,fname)),os.path.join(os.getcwd(),"working_merge/",(str(NUMBER_FILES_MERGED)+file_extension)))
+            NUMBER_FILES_MERGED +=1
 
-    NUMBER_ZIPPED += 1
+
+
 
     # clean up image folders if -d
     if(isDelete):
@@ -107,9 +122,17 @@ if __name__ == "__main__":
 
     directory_list = os.listdir(tachiyomi_path)
     directory_list = [directory for directory in directory_list if os.path.isdir(os.path.join(tachiyomi_path, directory))]
+    if (isMerge): #this working directory is created after the directory list is genereated, the workind directory will contain all images that will be archived into the final cbz file
+        os.mkdir(os.path.join(tachiyomi_path,"working_merge"))
     if directory_list:
         cbz_search(tachiyomi_path, directory_list)
-
+    if (isMerge): #merges all the files in the working directory and deletes the working directory
+        zip_name = shutil.make_archive(os.path.join(tachiyomi_path,"merged"), 'zip', os.path.join(tachiyomi_path,"working_merge"))
+        p = Path(zip_name)
+        p.rename(p.with_suffix(".cbz"))
+        NUMBER_ZIPPED += 1
+        shutil.rmtree(os.path.join(tachiyomi_path,"working_merge"))
+        # os.rmdir(os.path.join(tachiyomi_path,"/working_merge"))
     print()
     print()
     print()
