@@ -56,24 +56,26 @@ def cbz_folder(folder_name:str):
         created_cbz_name = str(os.path.join(os.getcwd(), f"{folder_name}.cbz"))
         VERBOSITY_PRINT(1, f"Creating {created_cbz_name}")
         if(not isTest):
-           zip_name = shutil.make_archive(folder_name, 'zip', os.path.join(os.getcwd(), folder_name))
-           p = Path(zip_name)
-           p.rename(p.with_suffix(".cbz"))
-           NUMBER_ZIPPED += 1
+            zip_name = shutil.make_archive(folder_name, 'zip', os.path.join(os.getcwd(), folder_name))
+            p = Path(zip_name)
+            p.rename(p.with_suffix(".cbz"))
+        NUMBER_ZIPPED += 1
     else: # executed when chapters are to be merged, instead of zipping one directory at a time, the directory contents are copied to a working directory to be zipped at the end
         if(not isTest):
             # because filenames will likely collide if we copy the names as they exist in the source dir, the files are named sequentially starting from 0
-           files=os.listdir(os.path.join(os.getcwd(),folder_name))
-           for fname in files:
-            file_extension = Path(os.path.join(os.getcwd(),folder_name,fname)).suffix
-            shutil.copy(os.path.join(os.path.join(os.getcwd(),folder_name,fname)),os.path.join(ABSOLUTE_PATH,"working_merge",(str(NUMBER_FILES_MERGED)+file_extension)))
-            NUMBER_FILES_MERGED +=1
+            files=os.listdir(os.path.join(os.getcwd(),folder_name))
+            for fname in files:
+                file_extension = Path(os.path.join(os.getcwd(),folder_name,fname)).suffix
+                shutil.copy(os.path.join(os.path.join(os.getcwd(),folder_name,fname)),os.path.join(ABSOLUTE_PATH,"working_merge",(str(NUMBER_FILES_MERGED)+file_extension)))
+                NUMBER_FILES_MERGED +=1
 
 
     # clean up image folders if -d
     if(isDelete):
         current_chapter_full_path = os.path.join(os.getcwd(), folder_name)
-        VERBOSITY_PRINT(2, f"Deleting {current_chapter_full_path}")
+        num_files_in_chapter_folder = len([entry for entry in os.listdir(current_chapter_full_path) if os.path.isfile(os.path.join(current_chapter_full_path, entry))])
+        VERBOSITY_PRINT(2, f"Deleting {current_chapter_full_path} ({num_files_in_chapter_folder} files)")
+        NUMBER_FILES_DELETED += num_files_in_chapter_folder
         if(not isTest):
             shutil.rmtree(current_chapter_full_path)
             # NUMBER_FILES_DELETED += N  ##TODO: when you can find out how many files were just deleted in the folder
@@ -148,7 +150,7 @@ if __name__ == "__main__":
     VERBOSITY_PRINT(0, "RESULT SUMMARY:")
     VERBOSITY_PRINT(0, f"   Number of .cbz files created:                          {NUMBER_ZIPPED}")
     VERBOSITY_PRINT(0, f"   Number of folders skipped (archive already exists):    {NUMBER_SKIPPED}")
-    VERBOSITY_PRINT(0, f"   Number of files deleted (not counting page pictures):  {NUMBER_FILES_DELETED}")
+    VERBOSITY_PRINT(0, f"   Number of files deleted:                               {NUMBER_FILES_DELETED}")
     VERBOSITY_PRINT(0, f"   Elapsed time: {days}d{hours}h{minutes}m{remainder_secs+(elapsed_time.microseconds*(10**-6)):.3f}s")
     print()
     VERBOSITY_PRINT(0, "PARAMETER INFORMATION:")
