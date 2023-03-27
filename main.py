@@ -2,6 +2,8 @@ import argparse
 import os
 import shutil
 from pathlib import Path
+from datetime import datetime
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--tachiyomi-path", help="file path to the Tachiyomi folder")
@@ -38,7 +40,7 @@ def cbz_folder(folder_name:str):
     global NUMBER_ZIPPED
     global NUMBER_FILES_DELETED
     global NUMBER_FILES_MERGED
-    global ABOLUTE_PATH
+    global ABSOLUTE_PATH
 
     # Deal with the .nomedia file (-c)
     nomedia_path = os.path.join(os.getcwd(), folder_name, ".nomedia")
@@ -66,8 +68,6 @@ def cbz_folder(folder_name:str):
             file_extension = Path(os.path.join(os.getcwd(),folder_name,fname)).suffix
             shutil.copy(os.path.join(os.path.join(os.getcwd(),folder_name,fname)),os.path.join(ABSOLUTE_PATH,"working_merge",(str(NUMBER_FILES_MERGED)+file_extension)))
             NUMBER_FILES_MERGED +=1
-
-
 
 
     # clean up image folders if -d
@@ -124,6 +124,7 @@ if __name__ == "__main__":
     VERBOSITY_PRINT(3, f"tachiyomi_path = {tachiyomi_path}, isDelete = {isDelete}, isTest = {isTest}")
 
     directory_list = os.listdir(tachiyomi_path)
+    start_time = datetime.now()
 
     directory_list = [directory for directory in directory_list if os.path.isdir(os.path.join(tachiyomi_path, directory))]
     if (isMerge): #this working directory is created after the directory list is genereated, the workind directory will contain all images that will be archived into the final cbz file
@@ -136,6 +137,11 @@ if __name__ == "__main__":
         p.rename(p.with_suffix(".cbz"))
         NUMBER_ZIPPED += 1
         shutil.rmtree(os.path.join(ABSOLUTE_PATH,"working_merge"))
+    elapsed_time = datetime.now() - start_time
+    days = elapsed_time.days
+    hours, remainder_secs = divmod(elapsed_time.seconds, 60*60)
+    minutes, remainder_secs = divmod(remainder_secs, 60)
+
     print()
     print()
     print()
@@ -143,6 +149,7 @@ if __name__ == "__main__":
     VERBOSITY_PRINT(0, f"   Number of .cbz files created:                          {NUMBER_ZIPPED}")
     VERBOSITY_PRINT(0, f"   Number of folders skipped (archive already exists):    {NUMBER_SKIPPED}")
     VERBOSITY_PRINT(0, f"   Number of files deleted (not counting page pictures):  {NUMBER_FILES_DELETED}")
+    VERBOSITY_PRINT(0, f"   Elapsed time: {days}d{hours}h{minutes}m{remainder_secs+(elapsed_time.microseconds*(10**-6)):.3f}s")
     print()
     VERBOSITY_PRINT(0, "PARAMETER INFORMATION:")
     if(isTest):
